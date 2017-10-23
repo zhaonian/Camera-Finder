@@ -1,4 +1,4 @@
-import glob
+import sys
 import cv2
 import CorrespondenceMatcher as cm
 import ProjectionEstimator as pe
@@ -9,31 +9,32 @@ FOCAL_LENGTH = 32
 PATTERN_SIZE = 88
 
 
-pattern = cv2.imread('pattern.png', 0)     # trainImage
-matcher = cm.CorrespondenceMatcher(pattern)
-estimator = pe.ProjectionEstimator()
-renderer = rr.Renderer()
+def main(pattern_file, img_file):
+    pattern = cv2.imread('pattern.png', 0)     # trainImage
+    matcher = cm.CorrespondenceMatcher(pattern)
+    estimator = pe.ProjectionEstimator()
+    renderer = rr.Renderer()
 
-target_files = glob.glob("*.JPG")
+    print("loading image " + img_file)
+    query = cv2.imread(img_file, 0)    # queryImage
 
-for img_file in target_files:
-        print("loading image " + img_file)
-        query = cv2.imread(img_file, 0)    # queryImage
+    q_h, q_w = query.shape[:2]
+    p_h, p_w = pattern.shape[:2]
 
-        q_h, q_w = query.shape[:2]
-        p_h, p_w = pattern.shape[:2]
+    print("finding homography for " + img_file)
+    h = matcher.find_homography(query)
+    print("homography matrix " + str(h))
 
-        print("finding homography for " + img_file)
-        h = matcher.find_homography(query)
-        print("homography matrix " + str(h))
+    print("finding extrinsic camera parameter for " + img_file)
+    rx, ry, rz, px, py, pz, residual = estimator.compute_extrinsic(
+        h, p_w, q_w, FOCAL_LENGTH, PATTERN_SIZE)
+    print("rotation: " + str([rx, ry, rz]))
+    print("position: " + str([px, py, pz]))
+    print("parameter residual " + str(residual))
 
-        print("finding extrinsic camera parameter for " + img_file)
-        rx, ry, rz, px, py, pz, residual = estimator.compute_extrinsic(
-            h, q_w / p_w, FOCAL_LENGTH, PATTERN_SIZE)
-        print("rotation: " + str([rx, ry, rz]))
-        print("position: " + str([px, py, pz]))
-        print("parameter residual " + str(residual))
+    print("rendering result generated from pattern " +
+          pattern_file + " and image " + img_file)
+    renderer.render(img_file, rx, ry, rz, px, py, pz)
 
-        print("rendering result")
-        # renderer.render(img_file, rx, ry, rz, px, py, pz)
-        break
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2])

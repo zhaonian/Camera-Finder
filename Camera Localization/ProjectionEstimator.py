@@ -41,24 +41,25 @@ class ProjectionEstimator:
                 delta = np.sum(np.multiply(diff, diff), axis=0)
                 return np.sqrt(delta)
 
-        def compute_extrinsic(self, h, s, f, pattern_size):
+        def compute_extrinsic(self, h, ss, ds, f, pattern_size):
                 pattern_h_scale = 0.5 * pattern_size / 1000
                 delta = 2 * pattern_h_scale / NUM_POINT_REFERENCE
-                delta2 = 1 / NUM_POINT_REFERENCE
+                delta2 = ss / NUM_POINT_REFERENCE
+
                 real_p = np.mgrid[
                     -pattern_h_scale:pattern_h_scale:delta,
                     -pattern_h_scale:pattern_h_scale:delta,
                     0:1:1].reshape(3, -1)
                 pattern_p = np.mgrid[
-                    -0.5:0.5:delta2,
-                        -0.5:0.5:delta2,
-                        1:2:1].reshape(3, -1)
+                    0:ss:delta2,
+                    0:ss:delta2,
+                    1:2:1].reshape(3, -1)
 
                 screen_p = np.dot(h, pattern_p)
                 screen_pw = screen_p[2, :]
                 screen_p = screen_p / screen_pw
-                screen_p[0:2, :] /= s
-                # print(screen_p)
+                screen_p[0:2, :] /= ds
+                screen_p[0:2, :] -= 0.5
 
                 rx_c = 0.0
                 ry_c = 0.0
